@@ -16,8 +16,8 @@
 'use strict';
 
 jest.autoMockOff();
-const defineTest = require('../../src/testUtils').defineTest;
-const defineInlineTest = require('../../src/testUtils').defineInlineTest;
+const defineTest = require('../../../src/testUtils').defineTest;
+const defineInlineTest = require('../../../src/testUtils').defineInlineTest;
 const transform = require('../reverse-identifiers');
 
 defineTest(__dirname, 'reverse-identifiers');

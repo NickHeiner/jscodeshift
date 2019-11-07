@@ -24,7 +24,7 @@ async function transformer(file, api) {
   let namedExports;
 
   await moduleExports.forEachAsync(async node => {
-    if (node.value.right.type === 'Identifier') {
+    if (!node.value.right.properties) {
       j(node).replaceWith(j.exportDefaultDeclaration(node.value.right));
       return;
     }

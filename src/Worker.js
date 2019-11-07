@@ -139,9 +139,20 @@ function run(data) {
           return;
         }
         source = source.toString();
+
+        function handleTransformError(err) {
+          updateStatus(
+            'error',
+            file,
+            'Transformation error ('+ err.message.replace(/\n/g, ' ') + ')\n' + trimStackTrace(err.stack)
+          );
+          callback();
+        }
+
         try {
           const jscodeshift = prepareJscodeshift(options);
-          const out = transform(
+
+          const transformPromise = Promise.resolve(transform(
             {
               path: file,
               source: source,
@@ -153,35 +164,33 @@ function run(data) {
               report: msg => report(file, msg),
             },
             options
-          );
-          if (!out || out === source) {
-            updateStatus(out ? 'nochange' : 'skip', file);
-            callback();
-            return;
-          }
-          if (options.print) {
-            console.log(out); // eslint-disable-line no-console
-          }
-          if (!options.dry) {
-            writeFileAtomic(file, out, function(err) {
-              if (err) {
-                updateStatus('error', file, 'File writer error: ' + err);
-              } else {
-                updateStatus('ok', file);
-              }
+          ));
+
+          transformPromise.then(out => {
+            if (!out || out === source) {
+              updateStatus(out ? 'nochange' : 'skip', file);
               callback();
-            });
-          } else {
-            updateStatus('ok', file);
-            callback();
-          }
+              return;
+            }
+            if (options.print) {
+              console.log(out); // eslint-disable-line no-console
+            }
+            if (!options.dry) {
+              writeFileAtomic(file, out, function(err) {
+                if (err) {
+                  updateStatus('error', file, 'File writer error: ' + err);
+                } else {
+                  updateStatus('ok', file);
+                }
+                callback();
+              });
+            } else {
+              updateStatus('ok', file);
+              callback();
+            }
+          }).catch(handleTransformError)
         } catch(err) {
-          updateStatus(
-            'error',
-            file,
-            'Transformation error ('+ err.message.replace(/\n/g, ' ') + ')\n' + trimStackTrace(err.stack)
-          );
-          callback();
+          handleTransformError(err);
         }
       });
     },

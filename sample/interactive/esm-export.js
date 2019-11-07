@@ -29,12 +29,14 @@ async function transformer(file, api) {
         choices: exportNames
       });
 
-      const propertiesWithoutNamedExports = 
-        node.value.right.properties.filter(({key: {name}}) => !namedExports.includes(name));
+      const exportSpecifiers = node.value.right.properties
+        .filter(({key: {name}}) => !namedExports.includes(name))
+        .map(({key: {name}}) => {
+          const identifier = j.identifier(name);
+          return j.exportSpecifier(identifier, identifier);
+        });
 
-      node.value.right.properties = propertiesWithoutNamedExports;
-
-      j(node).replaceWith(node.value);
+      j(node).replaceWith(j.exportNamedDeclaration(null, exportSpecifiers));
     });
 
     // TODO: Make the normal chaining work, instead of having forEachAsync be terminal.

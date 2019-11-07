@@ -25,7 +25,7 @@ async function transformer(file, api) {
     })
     .filter(p => p.parentPath.parentPath.name === 'body');
 
-  let namedExports;
+  let namedExports, shortCircuit;
 
   await moduleExports.forEachAsync(async node => {
     if (!node.value.right.properties) {
@@ -41,20 +41,25 @@ async function transformer(file, api) {
         //    export default toExport;
         // 
         // For now, we'll punt.
-        api.report('Skipping this file because it contains a `...spread` in a module.exports assignment.');
+        // api.report('Skipping this file because it contains a `...spread` in a module.exports assignment.');
         return;
       }
     }
 
     const exportNames = node.value.right.properties.map(({key}) => ({title: key.name, value: key.name}));
 
-    // TODO: Handle user hitting control-c.
     namedExports = (await api.prompt(node, {
       type: 'multiselect',
       name: 'namedExports',
       message: 'Choose the exports that should be converted to named exports.',
       choices: exportNames
     })).namedExports;
+
+    // If the user hit control-c when prompted with the question, skip this file.
+    if (!namedExports) {
+      shortCircuit = true;
+      return;
+    }
 
     const exportSpecifiers = node.value.right.properties
       .filter(({key: {name}}) => !namedExports.includes(name))
@@ -101,7 +106,9 @@ async function transformer(file, api) {
   });
 
     // TODO: Make the normal chaining work, instead of having forEachAsync be terminal.
-    return nodes.toSource();
+    if (!shortCircuit) {
+      return nodes.toSource();
+    }
 }
 
 module.exports = transformer;

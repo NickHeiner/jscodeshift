@@ -66,7 +66,7 @@ async function transformer(file, api) {
       questions.addPrompt(getPromptForNode(node, {
         type: 'multiselect',
         name: 'exportType',
-        message: 'Choose the exports that should be named exports.\n\nChoose the exports that should be named exports.',
+        message: 'Choose the exports that should be named exports.',
         choices: exportNames
       }));
     });

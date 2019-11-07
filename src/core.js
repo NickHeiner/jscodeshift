@@ -45,12 +45,6 @@ function core(source, options) {
     fromAST(source);
 }
 
-// function prompt() {
-
-// }
-
-// core.prompt = prompt;
-
 /**
  * Returns a collection from a node, node path, array of nodes or array of node
  * paths.

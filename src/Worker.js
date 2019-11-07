@@ -122,6 +122,50 @@ function trimStackTrace(trace) {
   return result.join('\n');
 }
 
+// let lockWaiterCurrentlyRunning = false;
+// const lockWaiters = [];
+
+// const runWithLock = async fn => {
+//   if (!lockWaiters.length) {
+//     lockWaiterCurrentlyRunning = true;
+//     await fn();
+//     lockWaiterCurrentlyRunning = false;
+//     return () => {};
+//   }
+
+//   lockWaiters.push(fn);
+//   return () => {
+
+//   }
+// }
+
+// Consider using inquirer instead
+const prompts = require('prompts');
+
+const ansiColors = require('ansi-colors');
+const {highlight} = require('cli-highlight');
+
+const maxLinesToShow = 10;
+const makePromptApi = ({source, path}) => (node, prompt) => {
+  const startLine = node.value.loc.start.line;
+  const endLine = node.value.loc.end.line;
+  const nodeLineLength = endLine - startLine;
+  const startLineToShow = Math.max(0, endLine - Math.max(nodeLineLength, maxLinesToShow));
+
+  const codeLines = highlight(source, {language: 'js'}).split('\n');
+  const codeSample = codeLines
+    .slice(startLineToShow, endLine)
+    .map((line, index) => `${ansiColors.white(index + startLineToShow)}\t${line}`)
+    .join('\n');
+
+  return prompts({
+    ...prompt,
+
+    message: `${path}: ${prompt.message}`,
+    hint: `\n${codeSample}`
+  })
+}
+
 function run(data) {
   const files = data.files;
   const options = data.options || {};
@@ -152,12 +196,15 @@ function run(data) {
         try {
           const jscodeshift = prepareJscodeshift(options);
 
+          const fileInfo = {
+            path: file,
+            source: source,
+          };
+
           const transformPromise = Promise.resolve(transform(
+            fileInfo,
             {
-              path: file,
-              source: source,
-            },
-            {
+              prompt: makePromptApi(fileInfo),
               j: jscodeshift,
               jscodeshift: jscodeshift,
               stats: options.dry ? stats : empty,

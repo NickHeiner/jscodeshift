@@ -1,4 +1,8 @@
+// Consider using inquirer instead
 const prompts = require('prompts');
+
+const ansiColors = require('ansi-colors');
+const {highlight} = require('cli-highlight');
 
 // TODO: add ability to remember answers
 
@@ -30,13 +34,17 @@ async function transformer(file, api) {
     const nodeLineLength = endLine - startLine;
     const startLineToShow = Math.max(0, endLine - Math.max(nodeLineLength, maxLinesToShow));
   
-    const codeLines = file.source.split('\n');
-    const codeSample = codeLines.slice(startLineToShow, endLine).map(line => `\t${line}`).join('\n');
+    const codeLines = highlight(file.source, {language: 'js'}).split('\n');
+    const codeSample = codeLines
+      .slice(startLineToShow, endLine)
+      .map((line, index) => `${ansiColors.white(index + startLineToShow)}\t${line}`)
+      .join('\n');
   
     return {
       ...prompt,
   
-      message: `${prompt.message}\n${codeSample}`
+      message: `${file.path}: ${prompt.message}`,
+      hint: `\n${codeSample}`
     }
   }
 

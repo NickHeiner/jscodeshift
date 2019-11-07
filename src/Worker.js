@@ -122,36 +122,8 @@ function trimStackTrace(trace) {
   return result.join('\n');
 }
 
-let lockWaiterCurrentlyRunning = false;
-const lockWaiters = [];
-
-const runNextWaiter = async () => {
-  if (!lockWaiters.length || lockWaiterCurrentlyRunning) {
-    return;
-  }
-  const {waiter: nextWaiter, onResult, onError} = lockWaiters.shift();
-  lockWaiterCurrentlyRunning = true;
-  let result;
-  try {
-    result = await nextWaiter();
-  } catch (e) {
-    onError(e);
-  }
-  lockWaiterCurrentlyRunning = false;
-  runNextWaiter();
-  onResult(result);
-}
-
-const runWithLock = waiter => {
-  return Promise((resolve, reject) => {
-    lockWaiters.push({
-      waiter, 
-      onResult: resolve,
-      onError: reject
-    });
-    runNextWaiter();
-  });
-}
+const makeScheduler = require('./utils/runWithGlobalLock');
+const runWithGlobalLock = makeScheduler();
 
 // Consider using inquirer instead
 const prompts = require('prompts');
@@ -172,7 +144,8 @@ const makePromptApi = ({source, path}) => (node, prompt) => {
     .map((line, index) => `${ansiColors.white(index + startLineToShow)}\t${line}`)
     .join('\n');
 
-  return runWithLock(() => prompts({
+  // Locking here could remove the need for it in forEach
+  return runWithGlobalLock(() => prompts({
     ...prompt,
 
     message: `${path}: ${prompt.message}`,

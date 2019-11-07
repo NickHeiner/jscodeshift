@@ -3,11 +3,10 @@
 // TODO: add ability to remember answers
 
 // TODO add an example that produces multiple prompts for a single file.
-// TODO add ability to run this against more than one file at a time.
 
 async function transformer(file, api) {
 
-  console.log('start', file.path);
+  // console.log('start', file.path);
   const j = api.jscodeshift;
 
   await j(file.source)
@@ -33,10 +32,10 @@ async function transformer(file, api) {
         choices: exportNames
       });
 
-      console.log({answer});
+      // console.log({answer});
     });
 
-    console.log('end', file.path);
+    // console.log('end', file.path);
 }
 
 module.exports = transformer;

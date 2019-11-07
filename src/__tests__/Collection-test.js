@@ -295,13 +295,13 @@ describe('Collection API', function() {
     });
 
     describe('at', function() {
-      it('should work with positive indecies', function() {
+      it('should work with positive indicies', function() {
         const root = Collection.fromNodes(nodes);
         expect(root.at(0).nodes()[0]).toEqual(nodes[0]);
         expect(root.at(1).nodes()[0]).toEqual(nodes[1]);
       });
 
-      it('should work with negative indecies', function() {
+      it('should work with negative indicies', function() {
         const root = Collection.fromNodes(nodes);
         expect(root.at(-1).nodes()[0]).toEqual(nodes[nodes.length - 1]);
         expect(root.at(-2).nodes()[0]).toEqual(nodes[nodes.length - 2]);

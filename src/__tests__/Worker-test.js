@@ -37,6 +37,21 @@ describe('Worker API', () => {
     });
   });
 
+  it('asynchronously transforms files', done => {
+    const transformPath =
+      createTransformWith('return Promise.resolve(fileInfo.source + " changed");');
+    const sourcePath = createTempFileWith('foo');
+    const emitter = worker([transformPath]);
+
+    emitter.send({files: [sourcePath]});
+    emitter.once('message', (data) => {
+      expect(data.status).toBe('ok');
+      expect(data.msg).toBe(sourcePath);
+      expect(getFileContent(sourcePath)).toBe('foo changed');
+      done();
+    });
+  });
+
   it('passes j as argument', done => {
     const transformPath = createTempFileWith(
       `module.exports = function (file, api) {

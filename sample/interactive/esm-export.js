@@ -24,6 +24,11 @@ async function transformer(file, api) {
   let namedExports;
 
   await moduleExports.forEachAsync(async node => {
+    if (node.value.right.type === 'Identifier') {
+      j(node).replaceWith(j.exportDefaultDeclaration(node.value.right));
+      return;
+    }
+
     const exportNames = node.value.right.properties.map(({key}) => ({title: key.name, value: key.name}));
 
     namedExports = (await api.prompt(node, {

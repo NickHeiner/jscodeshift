@@ -46,7 +46,8 @@ function addIgnoreFromInput(input) {
  *    /excluded
  *    !/excluded/included.txt
  * 
- * This will result in jscodeshift ignoring all your files.
+ * This will result in jscodeshift ignoring all your files. 
+ * For more detail, see https://github.com/facebook/jscodeshift/issues/342.
  * 
  * @param {String|Array<String>} input - the paths to the ignore config files
  */

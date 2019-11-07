@@ -37,7 +37,17 @@ function addIgnoreFromInput(input) {
 }
 
 /**
- * Adds ignore patterns by reading files
+ * Adds ignore patterns by reading files.
+ * 
+ * Bug: if you have a .gitignore that contains inverted paths, it'll exclude everything. 
+ *  For example, if your .gitignore is:
+ * 
+ *    # Ignore everything in /excluded, except /excluded/included.txt.
+ *    /excluded
+ *    !/excluded/included.txt
+ * 
+ * This will result in jscodeshift ignoring all your files.
+ * 
  * @param {String|Array<String>} input - the paths to the ignore config files
  */
 function addIgnoreFromFile(input) {

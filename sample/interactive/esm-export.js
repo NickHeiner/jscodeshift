@@ -33,6 +33,19 @@ async function transformer(file, api) {
       return;
     }
 
+    for (const property of node.value.right.properties) {
+      if (property.type === 'SpreadElement') {
+        // It's not valid syntax to transform this to `export {...obj, c}`. Instead, we need to do something like:
+        // 
+        //    const toExport = {...obj, c};
+        //    export default toExport;
+        // 
+        // For now, we'll punt.
+        api.report('Skipping this file because it contains a `...spread` in a module.exports assignment.');
+        return;
+      }
+    }
+
     const exportNames = node.value.right.properties.map(({key}) => ({title: key.name, value: key.name}));
 
     // TODO: Handle user hitting control-c.

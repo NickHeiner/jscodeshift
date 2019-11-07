@@ -3,6 +3,10 @@
 // TODO add an example that produces multiple prompts for a single file.
 
 async function transformer(file, api) {
+  if (file.path.includes('node_modules')) {
+    return;
+  }
+
   const j = api.jscodeshift;
 
   const nodes = j(file.source);

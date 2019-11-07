@@ -6,24 +6,7 @@ const {highlight} = require('cli-highlight');
 
 // TODO: add ability to remember answers
 
-class Questions {
-  constructor() {
-    // TODO: don't make this publicly visible
-    this.questions = [];
-  }
-
-  addPrompt = (...promptDescriptor) => this.questions.push(...promptDescriptor);
-
-  gatherAnswers = async () => {
-    const answers = {};
-    for (const prompt of this.questions) {
-      const answer = await prompts(prompt);
-      Object.assign(answers, answer);
-    }
-    return answers;
-  }
-}
-
+// TODO add an example that produces multiple prompts for a single file.
 // TODO add ability to run this against more than one file at a time.
 
 async function transformer(file, api) {
@@ -51,9 +34,7 @@ async function transformer(file, api) {
   console.log('start', file.path);
   const j = api.jscodeshift;
 
-  let questions = new Questions();
-
-  j(file.source)
+  await j(file.source)
     .find(j.AssignmentExpression, {
       operator: '=',
       left: {
@@ -66,21 +47,18 @@ async function transformer(file, api) {
       }
     })
     .filter(p => p.parentPath.parentPath.name === 'body')
-    .forEach(node => {
-      
-
+    .forEachAsync(async node => {
       const exportNames = node.value.right.properties.map(({key}) => ({title: key.name, value: key.name}));
 
-      questions.addPrompt(getPromptForNode(node, {
+      const answer = await prompts(getPromptForNode(node, {
         type: 'multiselect',
         name: 'exportType',
         message: 'Choose the exports that should be named exports.',
         choices: exportNames
       }));
-    });
 
-    const answers = await questions.gatherAnswers();
-    console.log({answers});
+      console.log({answer});
+    });
 
     console.log('end', file.path);
 }

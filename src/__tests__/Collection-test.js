@@ -232,6 +232,28 @@ describe('Collection API', function() {
       });
     });
 
+    describe('forEachAsync', function() {
+      it('executes async iterators serially', async function() {
+        const collection = Collection.fromNodes(nodes);
+
+        const taskRecord = [];
+        const asyncTask = async taskName => {
+          taskRecord.push('start task ' + taskName);
+          await Promise.resolve();
+          taskRecord.push('end task ' + taskName);
+        }
+
+        await collection.forEachAsync((_, index) => asyncTask(index));
+
+        expect(taskRecord).toEqual([
+          'start task 0',
+          'end task 0',
+          'start task 1',
+          'end task 1',
+        ]);
+      });
+    });
+
     describe('some', function() {
       it('lets you test each element of a collection and stops when one passes the test', function() {
         const each = jest.fn().mockImplementation(() => true);

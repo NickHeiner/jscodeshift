@@ -76,6 +76,19 @@ class Collection {
     );
     return this;
   }
+  
+  async forEachAsync(callback) {
+    const promises = [];
+    this.__paths.forEach(
+      (path, i, paths) => {
+        promises.push(() => callback.call(path, path, i, paths));
+      }
+    );
+
+    for (const promise of promises) {
+      await promise();
+    }
+  }
 
   /**
    * Tests whether at-least one path passes the test implemented by the provided callback.

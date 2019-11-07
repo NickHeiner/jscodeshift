@@ -20,7 +20,27 @@ class Questions {
   }
 }
 
+// TODO add ability to run this against more than one file at a time.
+
 async function transformer(file, api) {
+  const maxLinesToShow = 10;
+  const getPromptForNode = (node, prompt) => {
+    const startLine = node.value.loc.start.line;
+    const endLine = node.value.loc.end.line;
+    const nodeLineLength = endLine - startLine;
+    const startLineToShow = Math.max(0, endLine - Math.max(nodeLineLength, maxLinesToShow));
+  
+    const codeLines = file.source.split('\n');
+    const codeSample = codeLines.slice(startLineToShow, endLine).map(line => `\t${line}`).join('\n');
+  
+    return {
+      ...prompt,
+  
+      message: `${prompt.message}\n${codeSample}`
+    }
+  }
+
+  console.log('start', file.path);
   const j = api.jscodeshift;
 
   let questions = new Questions();
@@ -39,18 +59,22 @@ async function transformer(file, api) {
     })
     .filter(p => p.parentPath.parentPath.name === 'body')
     .forEach(node => {
+      
+
       const exportNames = node.value.right.properties.map(({key}) => ({title: key.name, value: key.name}));
 
-      questions.addPrompt({
+      questions.addPrompt(getPromptForNode(node, {
         type: 'multiselect',
         name: 'exportType',
-        message: 'Choose the exports that should be named exports.',
+        message: 'Choose the exports that should be named exports.\n\nChoose the exports that should be named exports.',
         choices: exportNames
-      });
+      }));
     });
 
     const answers = await questions.gatherAnswers();
     console.log({answers});
+
+    console.log('end', file.path);
 }
 
 module.exports = transformer;

@@ -41,7 +41,7 @@ async function transformer(file, api) {
       });
 
     // This produces a double semi-colon. Not sure why.
-    // j(node).replaceWith(j.exportNamedDeclaration(null, exportSpecifiers));
+    j(node).replaceWith(j.exportNamedDeclaration(null, exportSpecifiers));
 
     const scope = j(node).closestScope();
 
@@ -56,37 +56,26 @@ async function transformer(file, api) {
         .length
 
       if (!countFunctionReplacementsMade) {
-        const countVarReplacementsMade = scope
+        let countVarReplacementsMade;
+        scope
           .find(j.VariableDeclarator, {
             id: {
               name: namedExport
             }
           })
-          // .map(node => j(node).closest(j.VariableDeclaration).paths())
           .forEach(node => {
-            const vd = j(node).closest(j.VariableDeclaration).replaceWith(n => j.exportNamedDeclaration(n.value));
+            // TODO Do we need forEach here? Can we do closest() and replaceWith on the top level?
+            const countVarReplacementsMade = j(node)
+              .closest(j.VariableDeclaration)
+              .replaceWith(n => j.exportNamedDeclaration(n.value)).length;
           })
-          .length
 
         if (!countVarReplacementsMade) {
           throw new Error(`Could not find the declaration for "${namedExport}", so it was not exported.`)
         }
       }
     })
-
   });
-
-  // This doesn't work, because a function won't have a variable declaration.
-
-
-  // nodes
-  //   .find(j.Identifier)
-  //   .filter(node => namedExports.includes(node.value.name))
-  //   .forEach(node => {
-  //     console.log('found', node.value);
-  //   })
-    // .getDeclarators(node => node.value.name)
-    // .replaceWith(node => j.exportNamedDeclaration(node.value))
 
     // TODO: Make the normal chaining work, instead of having forEachAsync be terminal.
     return nodes.toSource();

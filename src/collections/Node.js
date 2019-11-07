@@ -118,30 +118,6 @@ const traversalMethods = {
       }
     }, types.VariableDeclarator);
   },
-
-  getDeclarators: function(nameGetter) {
-    return this.map(function(path) {
-      /*jshint curly:false*/
-      let scope = path.scope;
-      const name = nameGetter.apply(path, arguments);
-      scope = scope.lookup(name);
-      const bindings = scope.getBindings()[name];
-      const nodes = Collection.fromPaths(bindings);
-
-      const varDecl = nodes.closest(types.VariableDeclarator);
-      const funcDecl = nodes.closest(types.FunctionDeclaration);
-
-      console.log({vd: varDecl.paths(), fd: funcDecl.paths(), nodes: nodes.paths()})
-
-      if (varDecl.length === 1) {
-        return varDecl.paths()[0];
-      }
-
-      if (funcDecl.length === 1) {
-        return varDecl.paths()[0];
-      }
-    });
-  }
 };
 
 function toArray(value) {

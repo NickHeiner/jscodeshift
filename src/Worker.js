@@ -122,22 +122,36 @@ function trimStackTrace(trace) {
   return result.join('\n');
 }
 
-// let lockWaiterCurrentlyRunning = false;
-// const lockWaiters = [];
+let lockWaiterCurrentlyRunning = false;
+const lockWaiters = [];
 
-// const runWithLock = async fn => {
-//   if (!lockWaiters.length) {
-//     lockWaiterCurrentlyRunning = true;
-//     await fn();
-//     lockWaiterCurrentlyRunning = false;
-//     return () => {};
-//   }
+const runNextWaiter = async () => {
+  if (!lockWaiters.length || lockWaiterCurrentlyRunning) {
+    return;
+  }
+  const {waiter: nextWaiter, onResult, onError} = lockWaiters.shift();
+  lockWaiterCurrentlyRunning = true;
+  let result;
+  try {
+    result = await nextWaiter();
+  } catch (e) {
+    onError(e);
+  }
+  lockWaiterCurrentlyRunning = false;
+  runNextWaiter();
+  onResult(result);
+}
 
-//   lockWaiters.push(fn);
-//   return () => {
-
-//   }
-// }
+const runWithLock = waiter => {
+  return Promise((resolve, reject) => {
+    lockWaiters.push({
+      waiter, 
+      onResult: resolve,
+      onError: reject
+    });
+    runNextWaiter();
+  });
+}
 
 // Consider using inquirer instead
 const prompts = require('prompts');
@@ -158,12 +172,12 @@ const makePromptApi = ({source, path}) => (node, prompt) => {
     .map((line, index) => `${ansiColors.white(index + startLineToShow)}\t${line}`)
     .join('\n');
 
-  return prompts({
+  return runWithLock(() => prompts({
     ...prompt,
 
     message: `${path}: ${prompt.message}`,
     hint: `\n${codeSample}`
-  })
+  }))
 }
 
 function run(data) {

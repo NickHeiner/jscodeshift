@@ -31,6 +31,7 @@ async function transformer(file, api) {
 
     const exportNames = node.value.right.properties.map(({key}) => ({title: key.name, value: key.name}));
 
+    // TODO: Handle user hitting control-c.
     namedExports = (await api.prompt(node, {
       type: 'multiselect',
       name: 'namedExports',

@@ -131,8 +131,70 @@ const prompts = require('prompts');
 const ansiColors = require('ansi-colors');
 const {highlight} = require('cli-highlight');
 
+const writeJsonFile = require('write-json-file');
+const loadJsonFile = require('load-json-file');
+const crypto = require('crypto');
+
+const hash = crypto.createHash('sha256');
+
+const ensureJsonFileExists = filePath => {
+  try {
+    return loadJsonFile.sync(filePath);
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      writeJsonFile.sync(filePath, {})
+      return {};
+    }
+    throw e;
+  }
+}
+
+const getAnswerCache = () => {
+  // TODO: make this a jscodeshift arg instead of a env var.
+  if (!process.env.ANSWER_CACHE_FILE_PATH) {
+    return {
+      getCachedAnswer() {},
+      cacheAnswer() {},
+      writeCacheToDisk() {}
+    }
+  }
+
+  // I wonder if using fileInfo.path is a good hash key. If the user runs the codemod from a different root dir,
+  // it would invalidate the entire cache.
+
+  const cache = ensureJsonFileExists(process.env.ANSWER_CACHE_FILE_PATH);
+
+  // hash.copy() was added in Node 13.
+  const hashOfFile = fileInfo => hash.copy().update(fileInfo.source).digest('hex');
+
+  return {
+    getCachedAnswer(fileInfo) {
+      const cachedEntry = cache[fileInfo.path];
+      if (!cachedEntry) {
+        return;
+      }
+      const sourceHash = hashOfFile(fileInfo);
+      if (cachedEntry.hash === sourceHash) {
+        return cachedEntry.answers;
+      }
+    },
+    cacheAnswer(fileInfo, answers) {
+      cache[fileInfo.path] = {
+        hash: hashOfFile(fileInfo),
+        answers
+      }
+    },
+    async writeCacheToDisk() {
+      await writeJsonFile(process.env.ANSWER_CACHE_FILE_PATH, cache);
+    }
+  }
+}
+
+const answerCache = getAnswerCache();
+
 const maxLinesToShow = 10;
-const makePromptApi = ({source, path}) => (node, prompt) => {
+const makePromptApi = fileInfo => async (node, prompt) => {
+  const {source, path} = fileInfo;
   const startLine = node.value.loc.start.line;
   const endLine = node.value.loc.end.line;
   const nodeLineLength = endLine - startLine;
@@ -144,13 +206,23 @@ const makePromptApi = ({source, path}) => (node, prompt) => {
     .map((line, index) => `${ansiColors.white(index + startLineToShow)}\t${line}`)
     .join('\n');
 
+  // TODO This only works if each file only has a single prompt.
+  const cachedAnswer = answerCache.getCachedAnswer(fileInfo);
+  if (cachedAnswer) {
+    return cachedAnswer;
+  }
+
   // Locking here could remove the need for it in forEach
-  return runWithGlobalLock(() => prompts({
+  const answer = await runWithGlobalLock(() => prompts({
     ...prompt,
 
     message: `${path}: ${prompt.message}`,
     hint: `\n${codeSample}`
   }))
+
+  answerCache.cacheAnswer(fileInfo, answer);
+
+  return answer;
 }
 
 function run(data) {
@@ -232,6 +304,7 @@ function run(data) {
       if (err) {
         updateStatus('error', '', 'This should never be shown!');
       }
+      answerCache.writeCacheToDisk();
       free();
     }
   );

@@ -32,7 +32,7 @@ async function transformer(file, api) {
         choices: exportNames
       });
 
-      // console.log({answer});
+      console.log({answer});
     });
 
     // console.log('end', file.path);

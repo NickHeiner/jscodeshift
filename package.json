@@ -37,13 +37,15 @@
     "colors": "^1.1.2",
     "flow-parser": "0.*",
     "graceful-fs": "^4.1.11",
+    "load-json-file": "^6.2.0",
     "micromatch": "^3.1.10",
     "neo-async": "^2.5.0",
     "node-dir": "^0.1.17",
     "prompts": "^2.2.1",
     "recast": "^0.18.1",
     "temp": "^0.8.1",
-    "write-file-atomic": "^2.3.0"
+    "write-file-atomic": "^2.3.0",
+    "write-json-file": "^4.2.0"
   },
   "devDependencies": {
     "babel-eslint": "^10.0.1",

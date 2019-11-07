@@ -1,15 +1,11 @@
 
 
-// TODO: add ability to remember answers
-
 // TODO add an example that produces multiple prompts for a single file.
 
 async function transformer(file, api) {
-
-  // console.log('start', file.path);
   const j = api.jscodeshift;
 
-  await j(file.source)
+  const nodes = j(file.source)
     .find(j.AssignmentExpression, {
       operator: '=',
       left: {
@@ -21,21 +17,28 @@ async function transformer(file, api) {
         property: { name: 'exports' }
       }
     })
-    .filter(p => p.parentPath.parentPath.name === 'body')
-    .forEachAsync(async node => {
+    .filter(p => p.parentPath.parentPath.name === 'body');
+
+  await nodes.forEachAsync(async node => {
       const exportNames = node.value.right.properties.map(({key}) => ({title: key.name, value: key.name}));
 
-      const answer = await api.prompt(node, {
+      const {namedExports} = await api.prompt(node, {
         type: 'multiselect',
-        name: 'exportType',
-        message: 'Choose the exports that should be named exports.',
+        name: 'namedExports',
+        message: 'Choose the exports that should be converted to named exports.',
         choices: exportNames
       });
 
-      console.log({answer});
+      const propertiesWithoutNamedExports = 
+        node.value.right.properties.filter(({key: {name}}) => !namedExports.includes(name));
+
+      node.value.right.properties = propertiesWithoutNamedExports;
+
+      j(node).replaceWith(node.value);
     });
 
-    // console.log('end', file.path);
+    // TODO: Make the normal chaining work, instead of having forEachAsync be terminal.
+    return nodes.toSource();
 }
 
 module.exports = transformer;

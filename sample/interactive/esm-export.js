@@ -25,7 +25,7 @@ async function transformer(file, api) {
     })
     .filter(p => p.parentPath.parentPath.name === 'body');
 
-  let namedExports, shortCircuit;
+  let namedExports;
 
   await moduleExports.forEachAsync(async node => {
     if (!node.value.right.properties) {
@@ -55,9 +55,12 @@ async function transformer(file, api) {
       choices: exportNames
     })).namedExports;
 
-    // If the user hit control-c when prompted with the question, skip this file.
+    // TODO: This will get a bit more cumbersome when there are multiple prompts per file. What happens when you
+    // skip one and not others? Ideally, that should stop all execution, but I'm not sure what the best way to do 
+    // that is without getting complicated with yield.
+    
+    // If the user hit control-c, skip this file.
     if (!namedExports) {
-      shortCircuit = true;
       return;
     }
 
@@ -105,10 +108,8 @@ async function transformer(file, api) {
     })
   });
 
-    // TODO: Make the normal chaining work, instead of having forEachAsync be terminal.
-    if (!shortCircuit) {
-      return nodes.toSource();
-    }
+  // TODO: Make the normal chaining work, instead of having forEachAsync be terminal.
+  return nodes.toSource();
 }
 
 module.exports = transformer;

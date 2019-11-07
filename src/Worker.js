@@ -193,7 +193,7 @@ const getAnswerCache = () => {
 const answerCache = getAnswerCache();
 
 const maxLinesToShow = 10;
-const makePromptApi = fileInfo => async (node, prompt) => {
+const makePromptApi = (fileInfo, onCancel) => async (node, prompt) => {
   const {source, path} = fileInfo;
   const startLine = node.value.loc.start.line;
   const endLine = node.value.loc.end.line;
@@ -216,6 +216,7 @@ const makePromptApi = fileInfo => async (node, prompt) => {
   const answer = await runWithGlobalLock(() => prompts({
     ...prompt,
 
+    onCancel,
     message: `${path}: ${prompt.message}`,
     hint: `\n${codeSample}`
   }))
@@ -259,11 +260,12 @@ function run(data) {
             path: file,
             source: source,
           };
+          let userHasSkippedPrompt = false;
 
           const transformPromise = Promise.resolve(transform(
             fileInfo,
             {
-              prompt: makePromptApi(fileInfo),
+              prompt: makePromptApi(fileInfo, () => {userHasSkippedPrompt = true}),
               j: jscodeshift,
               jscodeshift: jscodeshift,
               stats: options.dry ? stats : empty,
@@ -273,8 +275,9 @@ function run(data) {
           ));
 
           transformPromise.then(out => {
-            if (!out || out === source) {
-              updateStatus(out ? 'nochange' : 'skip', file);
+            if (!out || out === source || userHasSkippedPrompt) {
+              let status = out && !userHasSkippedPrompt ? 'nochange' : 'skip';
+              updateStatus(status, file);
               callback();
               return;
             }

@@ -30,14 +30,14 @@ if (module.parent) {
   finish = () => { emitter.emit('disconnect'); };
   notify = (data) => { emitter.emit('message', data); };
   module.exports = (args) => {
-    setup(args[0], args[1]);
+    setUp(args[0], args[1]);
     return emitter;
   };
 } else {
   finish = () => setImmediate(() => process.disconnect());
   notify = (data) => { process.send(data); };
   process.on('message', (data) => { run(data); });
-  setup(process.argv[2], process.argv[3]);
+  setUp(process.argv[2], process.argv[3]);
 }
 
 function prepareJscodeshift(options) {
@@ -46,7 +46,7 @@ function prepareJscodeshift(options) {
   return jscodeshift.withParser(parser);
 }
 
-function setup(tr, babel) {
+function setUp(tr, babel) {
   if (babel === 'babel') {
     require('@babel/register')({
       babelrc: false,

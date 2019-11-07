@@ -65,7 +65,7 @@ async function transformer(file, api) {
           })
           .forEach(node => {
             // TODO Do we need forEach here? Can we do closest() and replaceWith on the top level?
-            const countVarReplacementsMade = j(node)
+            countVarReplacementsMade = j(node)
               .closest(j.VariableDeclaration)
               .replaceWith(n => j.exportNamedDeclaration(n.value)).length;
           })

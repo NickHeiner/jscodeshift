@@ -314,7 +314,6 @@ function run(data) {
 
           transformPromise.then(out => {
             if (!out || (out === source) || userHasSkippedPrompt) {
-              console.log('we out', {userHasSkippedPrompt});
               let status = out && !userHasSkippedPrompt ? 'nochange' : 'skip';
               updateStatus(status, file);
               callback();

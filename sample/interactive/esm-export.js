@@ -55,7 +55,8 @@ async function transformer(file, api) {
       choices: exportNames
     });
 
-    api.report('This log should not mess up the prompt');
+    // This next line is juts to test that logging doesn't cause a problem.
+    // api.report('This log should not mess up the prompt');
 
     namedExports = (await promptPromise).namedExports;
 

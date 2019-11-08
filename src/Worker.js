@@ -86,17 +86,23 @@ function setUp(tr, babel) {
   }
 }
 
+const makeScheduler = require('./utils/runWithGlobalLock');
+const runWithGlobalLock = makeScheduler();
+
 function free() {
   notify({action: 'free'});
 }
 
+// These locks should possibly be moved further upstream, to the point where the messages are written to the console.
+// That can be done when this adds cross-process support.
+
 function updateStatus(status, file, msg) {
   msg = msg ? file + ' ' + msg : file;
-  notify({action: 'status', status: status, msg: msg});
+  runWithGlobalLock(() => notify({action: 'status', status: status, msg: msg}));
 }
 
 function report(file, msg) {
-  notify({action: 'report', file, msg});
+  runWithGlobalLock(() => notify({action: 'report', file, msg}));
 }
 
 function empty() {}
@@ -121,9 +127,6 @@ function trimStackTrace(trace) {
   });
   return result.join('\n');
 }
-
-const makeScheduler = require('./utils/runWithGlobalLock');
-const runWithGlobalLock = makeScheduler();
 
 // Consider using inquirer instead
 const prompts = require('prompts');

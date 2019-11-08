@@ -41,24 +41,28 @@ async function transformer(file, api) {
         //    export default toExport;
         // 
         // For now, we'll punt.
-        // api.report('Skipping this file because it contains a `...spread` in a module.exports assignment.');
+        api.report('Skipping this file because it contains a `...spread` in a module.exports assignment.');
         return;
       }
     }
 
     const exportNames = node.value.right.properties.map(({key}) => ({title: key.name, value: key.name}));
 
-    namedExports = (await api.prompt(node, {
+    const promptPromise = api.prompt(node, {
       type: 'multiselect',
       name: 'namedExports',
       message: 'Choose the exports that should be converted to named exports.',
       choices: exportNames
-    })).namedExports;
+    });
+
+    api.report('This log should not mess up the prompt');
+
+    namedExports = (await promptPromise).namedExports;
 
     // TODO: This will get a bit more cumbersome when there are multiple prompts per file. What happens when you
     // skip one and not others? Ideally, that should stop all execution, but I'm not sure what the best way to do 
     // that is without getting complicated with yield.
-    
+
     // If the user hit control-c, skip this file.
     if (!namedExports) {
       return;

@@ -4,7 +4,7 @@ const makeScheduler = () => {
   const runWithLock = async waiter => {
     return new Promise(async (resolve, reject) => {
       globalPromptPromise = globalPromptPromise.then(() => {
-        return waiter().then(res => {
+        return Promise.resolve(waiter()).then(res => {
           resolve(res);
         }, reject);
       });

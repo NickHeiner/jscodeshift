@@ -196,7 +196,7 @@ const getAnswerCache = () => {
 const answerCache = getAnswerCache();
 
 const maxLinesToShow = 10;
-const makePromptApi = (fileInfo, onCancel) => async (node, prompt) => {
+const makePromptApi = (fileInfo, onCancel, filesRemainingToProcess) => async (node, prompt) => {
   const {source, path} = fileInfo;
   const startLine = node.value.loc.start.line;
   const endLine = node.value.loc.end.line;
@@ -221,7 +221,10 @@ const makePromptApi = (fileInfo, onCancel) => async (node, prompt) => {
 
     onCancel,
     message: `${path}: ${prompt.message}`,
-    hint: `\n${codeSample}`
+    // filesRemainingToProcess will be accurate as of the time that the transfomer starts working.
+    // By the time it asks a prompt, the real value could be lower. So we'll add a <= to make it clear
+    // that it's an upper bound.
+    hint: `(<=${filesRemainingToProcess} files remaining)\n${codeSample}`
   }))
 
   answerCache.cacheAnswer(fileInfo, answer);
@@ -236,8 +239,15 @@ function run(data) {
     finish();
     return;
   }
-  async.each(
+
+  let filesRemainingToProcess = files.length;
+
+  // TODO: How can the user bail out when they're done?
+
+  async.eachLimit(
     files,
+    // TODO: If I don't set this, the process locks up.
+    10,
     function(file, callback) {
       fs.readFile(file, function(err, source) {
         if (err) {
@@ -268,7 +278,7 @@ function run(data) {
           const transformPromise = Promise.resolve(transform(
             fileInfo,
             {
-              prompt: makePromptApi(fileInfo, () => {userHasSkippedPrompt = true}),
+              prompt: makePromptApi(fileInfo, () => {userHasSkippedPrompt = true}, filesRemainingToProcess),
               j: jscodeshift,
               jscodeshift: jscodeshift,
               stats: options.dry ? stats : empty,
@@ -300,7 +310,9 @@ function run(data) {
               updateStatus('ok', file);
               callback();
             }
-          }).catch(handleTransformError)
+          }).catch(handleTransformError).finally(() => {
+            filesRemainingToProcess--;
+          })
         } catch(err) {
           handleTransformError(err);
         }

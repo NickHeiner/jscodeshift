@@ -129,6 +129,8 @@ function trimStackTrace(trace) {
 }
 
 // Consider using inquirer instead
+// The key advantage I see is the BottomBar functionality. But I'm not sure that'll work in our scenario of interleaved
+// questions and other output.
 const prompts = require('prompts');
 
 const ansiColors = require('ansi-colors');
@@ -195,6 +197,8 @@ const getAnswerCache = () => {
 
 const answerCache = getAnswerCache();
 
+let userChoseToSaveAndExit = false;
+
 const maxLinesToShow = 10;
 const makePromptApi = (fileInfo, onCancel, filesRemainingToProcess) => async (node, prompt) => {
   const {source, path} = fileInfo;
@@ -216,16 +220,31 @@ const makePromptApi = (fileInfo, onCancel, filesRemainingToProcess) => async (no
   }
 
   // Locking here could remove the need for it in forEach
-  const answer = await runWithGlobalLock(() => prompts({
-    ...prompt,
+  const answer = await runWithGlobalLock(async () => {
+    if (userChoseToSaveAndExit) {
+      onCancel();
+      return {};
+    }
 
-    onCancel,
-    message: `${path}: ${prompt.message}`,
-    // filesRemainingToProcess will be accurate as of the time that the transfomer starts working.
-    // By the time it asks a prompt, the real value could be lower. So we'll add a <= to make it clear
-    // that it's an upper bound.
-    hint: `(<=${filesRemainingToProcess} files remaining)\n${codeSample}`
-  }))
+    return prompts({
+      ...prompt,
+
+      hotkeys: {
+        d: {
+          handle() {
+            userChoseToSaveAndExit = true;
+          },
+          instruction: 'Save current progress and stop answering questions.'
+        }
+      },
+      onCancel,
+      message: `${path}: ${prompt.message}`,
+      // filesRemainingToProcess will be accurate as of the time that the transfomer starts working.
+      // By the time it asks a prompt, the real value could be lower. So we'll add a <= to make it clear
+      // that it's an upper bound.
+      hint: `(<=${filesRemainingToProcess} files remaining)\n${codeSample}`
+    })
+  })
 
   answerCache.cacheAnswer(fileInfo, answer);
 
@@ -246,7 +265,8 @@ function run(data) {
 
   async.eachLimit(
     files,
-    // TODO: If I don't set this, the process locks up.
+    // TODO: If I don't set this, the process locks up. 
+    // Maybe that would happen, even on master, when applied to 10k files?
     10,
     function(file, callback) {
       fs.readFile(file, function(err, source) {

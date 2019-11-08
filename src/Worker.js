@@ -214,19 +214,20 @@ const makePromptApi = (fileInfo, onCancel, filesRemainingToProcess) => async (no
     .join('\n');
 
   // TODO This only works if each file only has a single prompt.
+  // And I feel that I've observed errors when running this on TVUI.
   const cachedAnswer = answerCache.getCachedAnswer(fileInfo);
   if (cachedAnswer) {
     return cachedAnswer;
   }
 
   // Locking here could remove the need for it in forEach
-  const answer = await runWithGlobalLock(async () => {
+  return runWithGlobalLock(async () => {
     if (userChoseToSaveAndExit) {
       onCancel();
       return {};
     }
 
-    return prompts({
+    const answer = await prompts({
       ...prompt,
 
       hotkeys: {
@@ -244,11 +245,12 @@ const makePromptApi = (fileInfo, onCancel, filesRemainingToProcess) => async (no
       // that it's an upper bound.
       hint: `(<=${filesRemainingToProcess} files remaining)\n${codeSample}`
     })
+
+    // TODO: ensure that we do not cache an answer if the user canceled.
+
+    answerCache.cacheAnswer(fileInfo, answer);
+    return answer;
   })
-
-  answerCache.cacheAnswer(fileInfo, answer);
-
-  return answer;
 }
 
 function run(data) {

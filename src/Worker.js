@@ -238,13 +238,16 @@ const makePromptApi = (fileInfo, onCancel, filesRemainingToProcess) => async (no
           instruction: 'Save current progress and stop answering questions.'
         }
       },
-      onCancel,
       message: `${path}: ${prompt.message}`,
       // filesRemainingToProcess will be accurate as of the time that the transfomer starts working.
       // By the time it asks a prompt, the real value could be lower. So we'll add a <= to make it clear
       // that it's an upper bound.
       hint: `(<=${filesRemainingToProcess} files remaining)\n${codeSample}`
-    })
+    }, 
+    // onCancel can be passed as a field of one of a question, or it can be passed as at the top level of this call.
+    // In the former case, onCancel will be called even when the user does not cancel.
+    {onCancel}
+  )
 
     // TODO: ensure that we do not cache an answer if the user canceled.
 
@@ -283,7 +286,7 @@ function run(data) {
           updateStatus(
             'error',
             file,
-            'Transformation error ('+ err.message.replace(/\n/g, ' ') + ')\n' + trimStackTrace(err.stack)
+            'Transformation error ('+ err.message.replace(/\n/g, ' ') + ')\n' + err.stack
           );
           callback();
         }
@@ -300,7 +303,7 @@ function run(data) {
           const transformPromise = Promise.resolve(transform(
             fileInfo,
             {
-              prompt: makePromptApi(fileInfo, () => {userHasSkippedPrompt = true}, filesRemainingToProcess),
+              prompt: makePromptApi(fileInfo, () => { userHasSkippedPrompt = true; }, filesRemainingToProcess),
               j: jscodeshift,
               jscodeshift: jscodeshift,
               stats: options.dry ? stats : empty,
@@ -310,7 +313,8 @@ function run(data) {
           ));
 
           transformPromise.then(out => {
-            if (!out || out === source || userHasSkippedPrompt) {
+            if (!out || (out === source) || userHasSkippedPrompt) {
+              console.log('we out', {userHasSkippedPrompt});
               let status = out && !userHasSkippedPrompt ? 'nochange' : 'skip';
               updateStatus(status, file);
               callback();

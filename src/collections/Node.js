@@ -112,7 +112,7 @@ const traversalMethods = {
       const bindings = scope.getBindings()[name];
       if (!bindings) return;
       const decl = Collection.fromPaths(bindings)
-      .closest(types.VariableDeclarator);
+        .closest(types.VariableDeclarator);
       if (decl.length === 1) {
         return decl.paths()[0];
       }

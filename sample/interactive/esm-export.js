@@ -77,6 +77,7 @@ async function transformer(file, api) {
       });
 
     // This produces a double semi-colon. Not sure why.
+    // This is also not right. This produces `export {A, B}`, but what we want is: `const e = {A, B}; export e;`
     j(node).replaceWith(j.exportNamedDeclaration(null, exportSpecifiers));
 
     const scope = j(node).closestScope();
